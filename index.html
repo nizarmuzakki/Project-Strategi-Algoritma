@@ -1,0 +1,797 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pinisi Rempah</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Young+Serif&display=swap">
+<style>
+/* Layout: peta pelayaran. Layar mulai 2 kolom (form + peringkat); layar main = rak barang di kiri, kapal yang tenggelam sesuai muatan di kanan. */
+:root {
+  --sea-950: #08182a;
+  --sea-900: #0d2438;
+  --sea-800: #143550;
+  --sea-700: #1d4a69;
+  --line: #2a5775;
+  --foam: #ecf1ea;
+  --muted: #8fb2c4;
+  --saffron: #f2b23e;
+  --coral: #ea6a52;
+  --jade: #5fd2a8;
+  --wood: #94623a;
+  --wood-d: #6b4325;
+  --hold: #0a1a29;
+  --f-display: "Young Serif", Georgia, serif;
+  --f-body: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body {
+  margin: 0;
+  background-color: var(--sea-950);
+  background-image:
+    linear-gradient(rgba(143,178,196,.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(143,178,196,.06) 1px, transparent 1px);
+  background-size: 32px 32px;
+  color: var(--foam);
+  font: 400 15px/1.5 var(--f-body);
+  padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+[hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--saffron); outline-offset: 2px; }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 400; margin: 0; text-wrap: balance; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.eyebrow { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+
+/* top bar */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand svg { width: 38px; height: 38px; flex: none; }
+.brand b { font-family: var(--f-display); font-weight: 400; font-size: 22px; letter-spacing: .01em; }
+.brand small { display: block; color: var(--muted); font-size: 12px; margin-top: -2px; }
+.who { color: var(--muted); font-size: 13px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.who b { color: var(--foam); font-weight: 600; }
+
+/* buttons */
+.btn { border: 1px solid var(--line); background: var(--sea-800); border-radius: 6px; padding: 9px 14px; font-weight: 600; font-size: 14px; transition: background .15s, border-color .15s, transform .1s; }
+.btn:hover:not(:disabled) { background: var(--sea-700); border-color: var(--muted); }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.primary { background: var(--saffron); color: #2a1a05; border-color: var(--saffron); }
+.btn.primary:hover:not(:disabled) { background: #ffc35a; border-color: #ffc35a; }
+.btn.ghost { background: transparent; }
+.btn.sm { padding: 6px 10px; font-size: 13px; }
+
+/* start screen */
+.start { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 20px; align-items: start; }
+.panel { background: var(--sea-900); border: 1px solid var(--line); border-radius: 10px; padding: 22px; }
+.hero h1 { font-size: clamp(34px, 6vw, 56px); line-height: 1.02; margin: 8px 0 12px; }
+.hero h1 em { font-style: normal; color: var(--saffron); }
+.hero p { color: var(--muted); max-width: 56ch; margin: 0 0 20px; }
+.form { display: flex; flex-direction: column; gap: 18px; }
+.field { display: flex; flex-direction: column; gap: 8px; min-width: 0; border: 0; padding: 0; margin: 0; }
+.field > legend, .field > label.lbl { padding: 0; }
+.txt { background: var(--hold); border: 1px solid var(--line); border-radius: 6px; padding: 11px 12px; width: 100%; }
+.txt::placeholder { color: #5f8499; }
+.err { color: var(--coral); font-size: 13px; min-height: 18px; }
+.choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.choices.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.choice { position: relative; }
+.choice input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+.choice span.card { display: flex; flex-direction: column; gap: 2px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--hold); height: 100%; transition: border-color .15s, background .15s; }
+.choice input:checked + span.card { border-color: var(--saffron); background: rgba(242,178,62,.1); }
+.choice input:focus-visible + span.card { outline: 2px solid var(--saffron); outline-offset: 2px; }
+.card b { font-family: var(--f-display); font-weight: 400; font-size: 18px; }
+.card small { color: var(--muted); font-size: 12.5px; line-height: 1.35; }
+.card .mono { font-size: 12px; color: var(--saffron); margin-top: auto; padding-top: 4px; }
+.row-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+.board h2 { font-size: 22px; }
+.board .sub2 { color: var(--muted); font-size: 12.5px; margin: 4px 0 0; }
+.tabs { display: flex; gap: 6px; margin: 12px 0; }
+.tab { background: transparent; border: 1px solid var(--line); border-radius: 6px; padding: 5px 11px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.tab[aria-selected="true"] { background: var(--sea-700); color: var(--foam); border-color: var(--muted); }
+.lb { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.lb li { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 9px 0; border-top: 1px dashed var(--line); }
+.lb li:first-child { border-top: 0; }
+.lb .rk { font-family: var(--f-mono); color: var(--saffron); }
+.lb .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.lb .sub { color: var(--muted); font-size: 12px; display: block; font-weight: 400; }
+.lb li.new .nm { color: var(--saffron); }
+.empty { color: var(--muted); font-size: 14px; padding: 14px 0 4px; }
+.how { margin: 18px 0 0; padding: 14px 0 0; border-top: 1px dashed var(--line); color: var(--muted); font-size: 13.5px; }
+.how b { color: var(--foam); }
+
+/* game screen */
+.game { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start; }
+.shelf { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; }
+.bar .grow { flex: 1; }
+.sel { background: var(--sea-800); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; font-size: 13px; }
+.sel:disabled { opacity: .6; }
+.items { display: grid; grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); gap: 10px; }
+.item { position: relative; text-align: left; display: grid; grid-template-columns: 34px minmax(0, 1fr); grid-template-rows: auto auto auto; column-gap: 10px; row-gap: 2px; padding: 11px; border-radius: 8px; border: 1px solid var(--line); background: var(--sea-900); transition: border-color .15s, background .15s, opacity .15s, transform .1s; }
+.item svg { grid-row: 1 / span 3; width: 34px; height: 38px; align-self: center; }
+.item .nm { font-weight: 600; font-size: 13.5px; line-height: 1.25; overflow-wrap: anywhere; }
+.item .w { font-family: var(--f-mono); font-size: 13px; color: var(--foam); }
+.item .pf { font-family: var(--f-mono); font-size: 13px; color: var(--saffron); font-weight: 600; }
+.item .tag { position: absolute; top: 6px; right: 8px; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; font-weight: 700; color: var(--muted); }
+.item:hover:not(:disabled) { border-color: var(--muted); }
+.item.in { border-color: var(--saffron); background: rgba(242,178,62,.12); }
+.item.in .tag { color: var(--saffron); }
+.item.dim { opacity: .45; }
+.item.hint { box-shadow: 0 0 0 2px var(--jade), 0 0 18px rgba(95,210,168,.35); }
+.item.hint .tag { color: var(--jade); }
+.item.opt { box-shadow: 0 0 0 2px var(--saffron); }
+.item.skip { opacity: .4; border-style: dashed; }
+.item.cur { border-color: var(--jade); background: rgba(95,210,168,.12); }
+.item:disabled { cursor: default; }
+.item.shake { animation: shake .35s; border-color: var(--coral); }
+@keyframes shake { 20%,60% { transform: translateX(-4px); } 40%,80% { transform: translateX(4px); } }
+
+.side { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 16px; }
+.harbor { padding: 14px 14px 18px; overflow: hidden; }
+.ship { width: 100%; height: auto; display: block; }
+.ship .sail { fill: var(--foam); opacity: .92; }
+.ship .sail2 { fill: #d7e2d6; }
+.ship .mast { stroke: var(--wood-d); stroke-width: 3; stroke-linecap: round; }
+.ship .hull { fill: var(--wood); }
+.ship .hull-d { fill: var(--wood-d); }
+.ship .hold { fill: var(--hold); }
+.ship .w-back { fill: #1b5a7c; opacity: .75; }
+.ship .w-front { fill: #0f3a57; opacity: .88; }
+.ship .sea-fill { fill: #0f3a57; opacity: .88; }
+.ship .sea-fill-b { fill: #1b5a7c; opacity: .75; }
+.ship #shipG { transition: transform .45s cubic-bezier(.3,.8,.3,1); }
+.ship.shake { animation: shake .35s; }
+.wv { animation: drift 5s linear infinite; }
+.wv.b { animation-duration: 8s; animation-direction: reverse; }
+@keyframes drift { to { transform: translateX(-120px); } }
+.plimsoll { stroke: var(--coral); stroke-width: 1.5; stroke-dasharray: 4 4; }
+.plabel { fill: var(--coral); font: 600 9px var(--f-mono); }
+
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 16px; }
+.stat { min-width: 0; }
+.stat .big { font-family: var(--f-mono); font-variant-numeric: tabular-nums; font-size: 26px; font-weight: 600; line-height: 1.15; display: block; overflow-wrap: anywhere; }
+.stat .big small { font-size: 13px; color: var(--muted); font-weight: 400; }
+.stat.profit .big { color: var(--saffron); }
+.gauge { grid-column: 1 / -1; height: 8px; background: var(--hold); border-radius: 4px; overflow: hidden; }
+.gauge i { display: block; height: 100%; width: 0; background: var(--jade); transition: width .35s, background .2s; }
+.meta2 { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); }
+.code { font-family: var(--f-mono); color: var(--foam); letter-spacing: .08em; }
+.ctl { display: flex; flex-wrap: wrap; gap: 8px; }
+.ctl .btn { flex: 1 1 auto; }
+.logp { padding: 14px 16px; }
+.log { list-style: none; margin: 10px 0 0; padding: 0; max-height: 210px; overflow: auto; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.log li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 8px; border-top: 1px dashed var(--line); padding-top: 6px; }
+.log li:first-child { border-top: 0; padding-top: 0; }
+.log .n { font-family: var(--f-mono); color: var(--muted); }
+.log .ok b { color: var(--jade); }
+.log .no b { color: var(--coral); }
+.log .tt { color: var(--muted); font-family: var(--f-mono); font-size: 12px; display: block; }
+.speed { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); flex: 1 1 100%; }
+.speed input { flex: 1; accent-color: var(--saffron); }
+
+.mini { display: none; }
+
+/* modal */
+.scrim { position: fixed; inset: 0; z-index: 50; background: rgba(4,12,22,.78); display: flex; align-items: flex-start; justify-content: center; padding: 24px 16px; overflow-y: auto; }
+.modal { width: min(620px, 100%); background: var(--sea-900); border: 1px solid var(--saffron); border-radius: 12px; padding: 26px; margin: auto 0; position: relative; overflow: hidden; }
+.modal h2 { font-size: 30px; line-height: 1.1; margin: 6px 0 4px; }
+.modal .lead { color: var(--muted); margin: 0 0 16px; }
+.trophy { width: 96px; height: 96px; display: block; margin-bottom: 6px; }
+.cmp { width: 100%; border-collapse: collapse; margin: 6px 0 14px; font-size: 13.5px; }
+.cmp th { text-align: left; font-weight: 600; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding: 6px 8px 6px 0; }
+.cmp td { padding: 8px 8px 8px 0; border-top: 1px dashed var(--line); vertical-align: middle; }
+.cmp td.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cmp tr.me td:first-child { color: var(--saffron); font-weight: 700; }
+.cmp .pc { display: block; height: 6px; background: var(--hold); border-radius: 3px; overflow: hidden; min-width: 70px; }
+.cmp .pc i { display: block; height: 100%; background: var(--muted); }
+.cmp tr.me .pc i { background: var(--saffron); }
+.cmp tr.best .pc i { background: var(--jade); }
+.tblwrap { overflow-x: auto; }
+.note { background: var(--sea-800); border-left: 3px solid var(--saffron); border-radius: 4px; padding: 10px 12px; font-size: 13.5px; margin: 0 0 16px; }
+.rankline { background: rgba(242,178,62,.12); border: 1px solid var(--saffron); border-radius: 6px; padding: 9px 12px; font-size: 13.5px; margin: 0 0 14px; }
+.rankline b { color: var(--saffron); }
+.coin { position: absolute; top: -14px; width: 10px; height: 10px; border-radius: 50%; background: var(--saffron); animation: fall 2.6s linear forwards; pointer-events: none; }
+@keyframes fall { to { transform: translateY(520px) rotate(360deg); opacity: .2; } }
+
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); background: var(--foam); color: var(--sea-950); padding: 9px 14px; border-radius: 6px; font-weight: 600; font-size: 14px; opacity: 0; transition: opacity .2s, transform .2s; z-index: 80; pointer-events: none; max-width: calc(100% - 32px); }
+.toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+@media (max-width: 900px) {
+  .start, .game { grid-template-columns: minmax(0, 1fr); }
+  .side { position: static; order: -1; }
+  .mini { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; background: var(--sea-900); border-top: 1px solid var(--saffron); gap: 10px; align-items: center; justify-content: space-between; padding: 10px max(16px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+  .mini .mono { font-size: 14px; }
+  .mini .p { color: var(--saffron); font-weight: 600; }
+  body.ingame { padding-bottom: 90px; }
+}
+@media (max-width: 480px) {
+  .choices { grid-template-columns: minmax(0, 1fr); }
+  .panel { padding: 16px; }
+  .modal { padding: 18px; }
+  .items { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wv, .coin { animation: none; }
+  .ship #shipG, .gauge i { transition: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="none" stroke="#2a5775" stroke-width="1.5"/><path d="M20 3 L23 20 L20 37 L17 20Z" fill="#f2b23e"/><path d="M3 20 L20 17 L37 20 L20 23Z" fill="#8fb2c4"/><circle cx="20" cy="20" r="2.5" fill="#08182a"/></svg>
+      <div><b>Pinisi Rempah</b><small>Knapsack Game · Strategi Algoritma</small></div>
+    </div>
+    <div class="who" id="who" hidden>
+      <span>Nakhoda <b id="whoName"></b> · <span id="whoLevel"></span> · <span id="whoMode"></span></span>
+      <button class="btn sm ghost" id="btnMenu" type="button">Menu utama</button>
+    </div>
+  </header>
+
+  <!-- ====== START ====== -->
+  <main id="screenStart" class="start">
+    <section class="panel hero">
+      <div class="eyebrow">Jalur Rempah Nusantara · Abad ke-17</div>
+      <h1>Muat pinisimu, <em>jangan</em> sampai tenggelam.</h1>
+      <p>Gudang pelabuhan penuh barang dagangan, tetapi palka kapal terbatas. Pilih muatan yang membawa untung terbesar. Semakin berat muatan, semakin dalam lambung kapal masuk ke air.</p>
+      <form class="form" id="startForm" novalidate>
+        <div class="field">
+          <label class="eyebrow lbl" for="inName">Nama nakhoda</label>
+          <input class="txt" id="inName" type="text" maxlength="20" autocomplete="off" placeholder="Contoh: Daeng Mattola">
+          <div class="err" id="nameErr" role="alert"></div>
+        </div>
+        <fieldset class="field">
+          <legend class="eyebrow">Level</legend>
+          <div class="choices">
+            <label class="choice"><input type="radio" name="level" value="easy" checked><span class="card"><b>Easy</b><small>10 barang, profit acak. Cocok untuk belajar.</small><span class="mono">kapasitas 30 kg</span></span></label>
+            <label class="choice"><input type="radio" name="level" value="medium"><span class="card"><b>Medium</b><small>25 barang, profit acak. Greedy kadang meleset.</small><span class="mono">kapasitas 100 kg</span></span></label>
+            <label class="choice"><input type="radio" name="level" value="hard"><span class="card"><b>Hard</b><small>50 barang, profit hampir sebanding berat. Jebakan Greedy.</small><span class="mono">kapasitas 200 kg</span></span></label>
+          </div>
+        </fieldset>
+        <fieldset class="field">
+          <legend class="eyebrow">Mode</legend>
+          <div class="choices two">
+            <label class="choice"><input type="radio" name="mode" value="manual" checked><span class="card"><b>Manual</b><small>Kamu memilih sendiri muatan. Capai profit maksimum untuk meraih piala. Skor masuk papan peringkat.</small></span></label>
+            <label class="choice"><input type="radio" name="mode" value="auto"><span class="card"><b>Automatic</b><small>Kapal dimuat otomatis dengan Greedy by Profit, selangkah demi selangkah.</small></span></label>
+          </div>
+        </fieldset>
+        <div class="field">
+          <label class="eyebrow lbl" for="inSeed">Kode pelayaran (opsional)</label>
+          <input class="txt code" id="inSeed" type="text" maxlength="8" autocomplete="off" placeholder="Kosongkan untuk barang acak" style="text-transform:uppercase">
+          <small style="color:var(--muted)">Kode yang sama menghasilkan barang yang sama. Berguna agar satu kelompok bisa membandingkan hasil saat presentasi.</small>
+        </div>
+        <div class="row-actions"><button class="btn primary" type="submit">Mulai berlayar</button></div>
+      </form>
+    </section>
+    <aside class="panel board">
+      <div class="eyebrow">Papan peringkat (di perangkat ini)</div>
+      <h2>Saudagar terbaik</h2>
+      <p class="sub2">Hanya mode Manual yang tercatat. Diurutkan dari persen terhadap optimal, lalu waktu tercepat.</p>
+      <div class="tabs" role="tablist" aria-label="Level peringkat">
+        <button class="tab" role="tab" data-lv="easy" aria-selected="true" type="button">Easy</button>
+        <button class="tab" role="tab" data-lv="medium" aria-selected="false" type="button">Medium</button>
+        <button class="tab" role="tab" data-lv="hard" aria-selected="false" type="button">Hard</button>
+      </div>
+      <ol class="lb" id="lb"></ol>
+      <div class="how">
+        <p style="margin:0 0 8px"><b>Cara bermain.</b> Klik barang untuk memuat atau menurunkannya. Total berat dan total profit selalu terlihat. Jika profitmu sama dengan solusi optimal yang dihitung Dynamic Programming, permainan berhenti dan kamu mendapat piala.</p>
+        <p style="margin:0"><b>Fitur.</b> Kapal tenggelam sesuai muatan, 3 petunjuk dari solusi optimal, undo, kode pelayaran, perbandingan 3 strategi Greedy dengan solusi optimal, dan papan peringkat.</p>
+      </div>
+    </aside>
+  </main>
+
+  <!-- ====== GAME ====== -->
+  <main id="screenGame" class="game" hidden>
+    <section class="shelf">
+      <div class="bar" id="barManual">
+        <label class="eyebrow" for="selSort">Urutkan</label>
+        <select class="sel" id="selSort">
+          <option value="asli">Urutan gudang</option>
+          <option value="profit">Profit terbesar</option>
+          <option value="berat">Berat teringan</option>
+          <option value="rasio">Profit per kg</option>
+          <option value="nama">Nama A-Z</option>
+        </select>
+        <span class="grow"></span>
+        <button class="btn sm" id="btnHint" type="button">Petunjuk (3)</button>
+        <button class="btn sm" id="btnUndo" type="button">Urungkan</button>
+        <button class="btn sm" id="btnClear" type="button">Kosongkan</button>
+      </div>
+      <div class="bar" id="barAuto" hidden>
+        <span class="eyebrow">Barang diurutkan menurut profit terbesar (urutan Greedy)</span>
+      </div>
+      <div class="items" id="items" role="group" aria-label="Barang dagangan"></div>
+    </section>
+
+    <aside class="side">
+      <div class="panel harbor">
+        <svg class="ship" id="ship" viewBox="0 0 360 230" role="img" aria-label="Kapal pinisi yang tenggelam sesuai muatan">
+          <g class="wv b"><path class="sea-fill-b" id="waveB" d=""/></g>
+          <g id="shipG">
+            <line class="mast" x1="140" y1="22" x2="140" y2="122"/>
+            <line class="mast" x1="216" y1="30" x2="216" y2="122"/>
+            <polygon class="sail" points="140,26 140,112 198,112"/>
+            <polygon class="sail2" points="136,32 94,112 136,112"/>
+            <polygon class="sail" points="216,34 216,112 270,112"/>
+            <polygon class="sail2" points="212,40 172,112 212,112"/>
+            <path class="hull" d="M34 120 H326 L296 172 H80 Z"/>
+            <path class="hull-d" d="M34 120 H326 L322 127 H38 Z"/>
+            <rect class="hold" x="62" y="130" width="236" height="22" rx="2"/>
+            <g id="cargo"></g>
+            <path class="hull-d" d="M80 172 H296 L291 180 H85 Z"/>
+          </g>
+          <g class="wv"><path class="sea-fill" id="waveF" d=""/></g>
+          <line class="plimsoll" x1="14" y1="196" x2="346" y2="196"/>
+          <text class="plabel" x="16" y="190">GARIS MUAT</text>
+        </svg>
+      </div>
+
+      <div class="panel stats">
+        <div class="stat"><span class="eyebrow">Total berat</span><span class="big"><span data-bind="w">0</span> <small>/ <span data-bind="cap">30</span> kg</small></span></div>
+        <div class="stat profit"><span class="eyebrow">Total profit</span><span class="big"><span data-bind="c">Rp 0,00</span> <small>jt</small></span></div>
+        <div class="gauge" aria-hidden="true"><i id="gauge"></i></div>
+        <div class="meta2"><span>Sisa palka <b class="mono" data-bind="left">30</b> kg</span><span id="clock" class="mono">00:00</span><span>Kode <b class="code" id="seedTxt"></b> <button class="btn sm ghost" id="btnCopy" type="button">Salin</button></span></div>
+      </div>
+
+      <div class="ctl" id="ctlManual">
+        <button class="btn primary" id="btnSail" type="button">Berlayar</button>
+        <button class="btn ghost" id="btnGive" type="button">Menyerah, tunjukkan solusi</button>
+      </div>
+      <div class="ctl" id="ctlAuto" hidden>
+        <button class="btn primary" id="btnPlay" type="button">Mulai</button>
+        <button class="btn" id="btnStep" type="button">Langkah</button>
+        <button class="btn ghost" id="btnReset" type="button">Ulang</button>
+        <label class="speed" for="rngSpeed">Cepat <input id="rngSpeed" type="range" min="1" max="10" value="6"> Lambat</label>
+      </div>
+
+      <div class="panel logp" id="logPanel" hidden>
+        <div class="eyebrow">Catatan pemuatan Greedy by Profit</div>
+        <ul class="log" id="log"></ul>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<div class="mini" id="mini">
+  <span class="mono"><span data-bind="w">0</span>/<span data-bind="cap">30</span> kg</span>
+  <span class="mono p" data-bind="c">Rp 0,00</span>
+  <button class="btn sm primary" id="btnSailMini" type="button">Berlayar</button>
+</div>
+<div id="modalRoot"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (s) { return document.querySelector(s); };
+  var $$ = function (s) { return Array.prototype.slice.call(document.querySelectorAll(s)); };
+
+  /* Tiap level punya karakter sendiri:
+     easy   : 10 barang, kapasitas 30 kg, profit acak.
+     medium : 25 barang, kapasitas 100 kg, profit acak (rasio profit/kg beragam).
+     hard   : 50 barang, kapasitas 200 kg, profit = berat x rasio sempit + bonus tetap,
+              sehingga rasio profit/kg nyaris sama dan Greedy sulit menebak yang terbaik. */
+  var LV = {
+    easy:   { n: 10, cap: 30,  wmin: 1, wmax: 12, rmin: 0.5, rmax: 2.3, bonus: 0, label: 'Easy' },
+    medium: { n: 25, cap: 100, wmin: 3, wmax: 28, rmin: 0.5, rmax: 2.3, bonus: 0, label: 'Medium' },
+    hard:   { n: 50, cap: 200, wmin: 5, wmax: 40, rmin: 0.9, rmax: 1.2, bonus: 6, label: 'Hard' }
+  };
+  var NAMES = ['Cengkih Maluku','Pala Banda','Fuli Banda','Lada Lampung','Kayu Manis Kerinci','Kapulaga','Jahe Merah','Kunyit','Vanili Flores','Kopi Gayo','Kopi Toraja','Kopi Kintamani','Kakao Sulawesi','Teh Kayu Aro','Gaharu','Kemenyan Sumatra','Cendana Timor','Kopra','Sagu Papua','Garam Madura','Gula Aren','Kemiri','Asam Jawa','Temulawak','Lengkuas','Serai Wangi','Cabai Jawa','Minyak Atsiri','Damar','Rotan','Mutiara Laut','Teripang','Agar-agar','Rumput Laut','Sarang Walet','Madu Hutan','Lilin Lebah','Tembakau Deli','Karet','Biji Pinang','Kayu Jati','Kayu Ulin','Batik Tulis','Tenun Ikat','Keramik Kuno','Perak Kotagede','Kain Songket','Anyaman Pandan','Bawang Brebes','Kelapa Muda'];
+  var ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+  /* ---------- util ---------- */
+  function hashStr(s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function fmtN(c) { return (c / 100).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function fmtC(c) { return 'Rp ' + fmtN(c) + ' jt'; }
+  function fmtT(s) { var m = Math.floor(s / 60), r = s % 60; return (m < 10 ? '0' : '') + m + ':' + (r < 10 ? '0' : '') + r; }
+  function newSeed() { var s = ''; for (var i = 0; i < 5; i++) s += ALPHA[Math.floor(Math.random() * ALPHA.length)]; return s; }
+
+  /* Penyimpanan: pakai localStorage, tetapi selalu simpan juga di memori.
+     Jika localStorage diblokir (mode privat, iframe, dsb), papan peringkat tetap
+     jalan selama halaman belum ditutup. Sebelumnya kegagalan ini diam-diam
+     membuat papan peringkat selalu kosong. */
+  var mem = {};
+  function store(get, key, val) {
+    if (get) {
+      try { var r = localStorage.getItem(key); if (r !== null) return JSON.parse(r); } catch (e) {}
+      return Object.prototype.hasOwnProperty.call(mem, key) ? mem[key] : null;
+    }
+    mem[key] = val;
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {}
+    return null;
+  }
+
+  /* ---------- algorithms ---------- */
+  function genItems(seed, lv) {
+    var L = LV[lv], rng = mulberry(hashStr(seed + '|' + lv));
+    var pool = NAMES.slice();
+    for (var i = pool.length - 1; i > 0; i--) { var j = Math.floor(rng() * (i + 1)); var t = pool[i]; pool[i] = pool[j]; pool[j] = t; }
+    var items = [];
+    for (var k = 0; k < L.n; k++) {
+      var w = L.wmin + Math.floor(rng() * (L.wmax - L.wmin + 1));
+      var rate = L.rmin + rng() * (L.rmax - L.rmin);
+      var c = Math.max(50, Math.round((w * rate + L.bonus + rng() * 3) * 100)); /* profit dalam sen juta Rp, agar perbandingan real akurat */
+      items.push({ id: k, name: pool[k], w: w, c: c, hue: hashStr(pool[k]) % 360 });
+    }
+    return items;
+  }
+  function solveDP(items, cap) {
+    var n = items.length, W = cap + 1, dp = new Float64Array((n + 1) * W), i, j;
+    for (i = 1; i <= n; i++) {
+      var w = items[i - 1].w, c = items[i - 1].c;
+      for (j = 0; j <= cap; j++) {
+        var best = dp[(i - 1) * W + j];
+        if (j >= w) { var v = dp[(i - 1) * W + j - w] + c; if (v > best) best = v; }
+        dp[i * W + j] = best;
+      }
+    }
+    var set = {}, tw = 0; j = cap;
+    for (i = n; i >= 1; i--) {
+      if (dp[i * W + j] !== dp[(i - 1) * W + j]) { set[items[i - 1].id] = true; j -= items[i - 1].w; tw += items[i - 1].w; }
+    }
+    return { c: dp[n * W + cap], w: tw, set: set };
+  }
+  function greedy(items, cap, cmp) {
+    var arr = items.slice().sort(cmp), tw = 0, tc = 0, set = {};
+    arr.forEach(function (it) { if (tw + it.w <= cap) { tw += it.w; tc += it.c; set[it.id] = true; } });
+    return { c: tc, w: tw, set: set };
+  }
+  var CMP = {
+    profit: function (a, b) { return b.c - a.c || a.w - b.w; },
+    rasio:  function (a, b) { return b.c / b.w - a.c / a.w || b.c - a.c; },
+    berat:  function (a, b) { return a.w - b.w || b.c - a.c; }
+  };
+
+  /* ---------- state ---------- */
+  var S = null, timerId = null, autoId = null, toastId = null;
+  var els = {};
+
+  function totals() {
+    var w = 0, c = 0;
+    S.items.forEach(function (it) { if (S.sel[it.id]) { w += it.w; c += it.c; } });
+    return { w: w, c: c };
+  }
+  function selCount() { return Object.keys(S.sel).length; }
+
+  /* ---------- toast ---------- */
+  function toast(msg) {
+    var t = $('#toast'); t.textContent = msg; t.classList.add('on');
+    clearTimeout(toastId); toastId = setTimeout(function () { t.classList.remove('on'); }, 2600);
+  }
+
+  /* ---------- papan peringkat ---------- */
+  var boardLv = 'easy', newEntry = null;
+  function loadBoard() { var a = store(true, 'pinisi.lb'); return Array.isArray(a) ? a : []; }
+  function better(a, b) { return b.pct - a.pct || a.time - b.time || a.hints - b.hints; }
+  function renderBoard() {
+    var rows = loadBoard().filter(function (r) { return r && r.lv === boardLv; }).sort(better).slice(0, 5);
+    var ol = $('#lb');
+    if (!rows.length) { ol.innerHTML = '<li class="empty" style="display:block;border:0">Belum ada pelayaran Manual di level ' + LV[boardLv].label + '. Jadilah yang pertama.</li>'; return; }
+    ol.innerHTML = rows.map(function (r, i) {
+      var mine = newEntry && r.stamp === newEntry;
+      return '<li class="' + (mine ? 'new' : '') + '"><span class="rk">' + (i + 1) + '</span><span class="nm">' + esc(r.name) + '<span class="sub">' + fmtT(r.time) + ' · ' + r.hints + ' petunjuk · kode ' + esc(r.seed) + '</span></span><span class="mono">' + Number(r.pct).toFixed(1).replace('.', ',') + '%</span></li>';
+    }).join('');
+  }
+  function setBoardLv(lv) {
+    boardLv = lv;
+    $$('.tab').forEach(function (x) { x.setAttribute('aria-selected', x.getAttribute('data-lv') === lv ? 'true' : 'false'); });
+    renderBoard();
+  }
+  $$('.tab').forEach(function (b) { b.addEventListener('click', function () { setBoardLv(b.getAttribute('data-lv')); }); });
+  $$('input[name="level"]').forEach(function (r) { r.addEventListener('change', function () { setBoardLv(r.value); }); });
+  var savedName = store(true, 'pinisi.name'); if (typeof savedName === 'string') $('#inName').value = savedName;
+
+  $('#startForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var name = $('#inName').value.trim();
+    if (!name) { $('#nameErr').textContent = 'Isi nama nakhoda dulu agar kamu bisa masuk papan peringkat.'; $('#inName').focus(); return; }
+    $('#nameErr').textContent = '';
+    store(false, 'pinisi.name', name);
+    var lv = $('input[name="level"]:checked').value, mode = $('input[name="mode"]:checked').value;
+    var seed = $('#inSeed').value.trim().toUpperCase() || newSeed();
+    startGame({ name: name, lv: lv, mode: mode, seed: seed });
+  });
+
+  /* ---------- game setup ---------- */
+  function startGame(o) {
+    stopAll();
+    var L = LV[o.lv], items = genItems(o.seed, o.lv);
+    S = { name: o.name, lv: o.lv, mode: o.mode, seed: o.seed, cap: L.cap, items: items,
+      sel: {}, hist: [], hints: {}, hintsUsed: 0, t0: 0, elapsed: 0, finished: false, showOpt: false, saved: false, rank: 0, rankN: 0,
+      opt: solveDP(items, L.cap), sort: o.mode === 'auto' ? 'profit' : 'asli',
+      auto: { order: items.slice().sort(CMP.profit), idx: 0, status: {}, running: false, log: [] } };
+    $('#screenStart').hidden = true; $('#screenGame').hidden = false;
+    $('#who').hidden = false; document.body.classList.add('ingame');
+    $('#whoName').textContent = o.name; $('#whoLevel').textContent = L.label + ' · ' + L.n + ' barang · ' + L.cap + ' kg';
+    $('#whoMode').textContent = o.mode === 'auto' ? 'Automatic' : 'Manual';
+    $('#seedTxt').textContent = o.seed;
+    var auto = o.mode === 'auto';
+    $('#barManual').hidden = auto; $('#barAuto').hidden = !auto;
+    $('#ctlManual').hidden = auto; $('#ctlAuto').hidden = !auto; $('#logPanel').hidden = !auto;
+    $('#btnSailMini').hidden = auto;
+    $('#selSort').value = S.sort;
+    $('#log').innerHTML = ''; $('#clock').textContent = auto ? 'Langkah 0/' + items.length : '00:00';
+    $('#btnPlay').textContent = 'Mulai'; $('#btnStep').disabled = false; $('#btnPlay').disabled = false;
+    buildItems(); refresh(); window.scrollTo(0, 0);
+  }
+
+  var SACK = '<svg viewBox="0 0 40 44" aria-hidden="true"><path d="M14 4 L26 4 L24 10 C34 14 38 24 36 34 C35 40 30 42 20 42 C10 42 5 40 4 34 C2 24 6 14 16 10 Z" fill="HSL"/><path d="M13 9 Q20 13 27 9" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="1.6"/><path d="M13 3 L27 3" stroke="rgba(0,0,0,.45)" stroke-width="2" stroke-linecap="round"/></svg>';
+
+  function sortedItems() {
+    var a = S.items.slice();
+    switch (S.sort) {
+      case 'profit': a.sort(CMP.profit); break;
+      case 'berat': a.sort(CMP.berat); break;
+      case 'rasio': a.sort(CMP.rasio); break;
+      case 'nama': a.sort(function (x, y) { return x.name.localeCompare(y.name); }); break;
+    }
+    return a;
+  }
+  function buildItems() {
+    var box = $('#items'); box.innerHTML = ''; els = {};
+    var list = S.mode === 'auto' ? S.auto.order : sortedItems();
+    list.forEach(function (it, i) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'item';
+      b.setAttribute('data-id', it.id);
+      b.innerHTML = SACK.replace('HSL', 'hsl(' + it.hue + ' 48% 52%)') +
+        '<span class="nm">' + esc(it.name) + '</span>' +
+        '<span class="w">' + it.w + ' kg</span>' +
+        '<span class="pf">' + fmtC(it.c) + '</span>' +
+        '<span class="tag"></span>';
+      if (S.mode === 'auto') { b.disabled = true; b.querySelector('.tag').textContent = '#' + (i + 1); }
+      else b.addEventListener('click', function () { toggle(it.id); });
+      box.appendChild(b); els[it.id] = b;
+    });
+  }
+
+  /* ---------- render ---------- */
+  function buildWave(id, amp) {
+    var d = 'M-120 0 q30 ' + (-amp) + ' 60 0' + ' t60 0'.repeat(13) + ' V90 H-120 Z';
+    $(id).setAttribute('d', d);
+  }
+  buildWave('#waveF', 9); buildWave('#waveB', 7);
+
+  function refresh() {
+    var t = totals(), cap = S.cap, ratio = t.w / cap, auto = S.mode === 'auto';
+    $$('[data-bind="w"]').forEach(function (n) { n.textContent = t.w; });
+    $$('[data-bind="cap"]').forEach(function (n) { n.textContent = cap; });
+    $$('[data-bind="left"]').forEach(function (n) { n.textContent = cap - t.w; });
+    $$('[data-bind="c"]').forEach(function (n) { n.textContent = n.closest('.mini') ? fmtC(t.c) : fmtN(t.c); });
+    var g = $('#gauge'); g.style.width = Math.min(100, ratio * 100) + '%';
+    g.style.background = ratio > .95 ? 'var(--coral)' : ratio > .7 ? 'var(--saffron)' : 'var(--jade)';
+    $('#shipG').setAttribute('transform', 'translate(0,' + (ratio * 20).toFixed(1) + ')');
+    /* muatan di palka: lebar segmen sebanding dengan berat */
+    var x = 62, cargo = '';
+    S.items.forEach(function (it) {
+      if (!S.sel[it.id]) return;
+      var wd = it.w / cap * 236;
+      cargo += '<rect x="' + x.toFixed(1) + '" y="132" width="' + Math.max(wd - 1, 0.5).toFixed(1) + '" height="18" fill="hsl(' + it.hue + ' 48% 52%)"/>';
+      x += wd;
+    });
+    $('#cargo').innerHTML = cargo;
+    S.items.forEach(function (it) {
+      var el = els[it.id]; if (!el) return;
+      var inn = !!S.sel[it.id], st = S.auto.status[it.id];
+      el.classList.toggle('in', inn);
+      el.setAttribute('aria-pressed', inn ? 'true' : 'false');
+      el.classList.toggle('dim', !auto && !S.finished && !inn && it.w > cap - t.w);
+      el.classList.toggle('hint', !!S.hints[it.id] && !inn);
+      el.classList.toggle('opt', S.showOpt && !!S.opt.set[it.id]);
+      el.classList.toggle('skip', auto && st === 'skip');
+      el.classList.toggle('cur', auto && !S.finished && S.auto.order[S.auto.idx] === it);
+      var tag = el.querySelector('.tag');
+      if (auto) { tag.textContent = inn ? 'Dimuat' : st === 'skip' ? 'Tak muat' : '#' + (S.auto.order.indexOf(it) + 1); }
+      else tag.textContent = inn ? 'Di kapal' : S.hints[it.id] ? 'Petunjuk' : '';
+      if (S.showOpt && S.opt.set[it.id]) tag.textContent = 'Optimal';
+      if (S.finished && !auto) el.disabled = true;
+    });
+    if (!auto) {
+      $('#btnUndo').disabled = S.finished || !S.hist.length;
+      $('#btnClear').disabled = S.finished || !selCount();
+      $('#btnHint').disabled = S.finished || S.hintsUsed >= 3;
+      $('#btnHint').textContent = 'Petunjuk (' + (3 - S.hintsUsed) + ')';
+      $('#btnSail').disabled = S.finished; $('#btnGive').disabled = S.finished; $('#btnSailMini').disabled = S.finished;
+      $('#selSort').disabled = false;
+    }
+  }
+
+  /* ---------- manual ---------- */
+  function startClock() {
+    if (S.t0 || S.mode !== 'manual') return;
+    S.t0 = Date.now();
+    timerId = setInterval(function () { S.elapsed = Math.floor((Date.now() - S.t0) / 1000); $('#clock').textContent = fmtT(S.elapsed); }, 500);
+  }
+  function stopAll() { clearInterval(timerId); timerId = null; clearTimeout(autoId); autoId = null; if (S) S.auto.running = false; }
+
+  function toggle(id) {
+    if (!S || S.finished) return;
+    var it = S.items[id], t = totals();
+    if (S.sel[id]) { delete S.sel[id]; S.hist.push({ id: id, add: false }); }
+    else {
+      if (t.w + it.w > S.cap) {
+        var el = els[id]; el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
+        var sh = $('#ship'); sh.classList.remove('shake'); void sh.getBoundingClientRect(); sh.classList.add('shake');
+        toast('Palka tidak cukup: butuh ' + it.w + ' kg, sisa ' + (S.cap - t.w) + ' kg.');
+        return;
+      }
+      startClock(); S.sel[id] = true; S.hist.push({ id: id, add: true });
+    }
+    refresh();
+    if (selCount() && totals().c === S.opt.c) finishManual('win');
+  }
+  $('#btnUndo').addEventListener('click', function () {
+    if (S.finished || !S.hist.length) return;
+    var h = S.hist.pop(); if (h.add) delete S.sel[h.id]; else S.sel[h.id] = true; refresh();
+  });
+  $('#btnClear').addEventListener('click', function () { if (S.finished) return; S.sel = {}; S.hist = []; refresh(); });
+  $('#btnHint').addEventListener('click', function () {
+    if (S.finished || S.hintsUsed >= 3) return;
+    var cand = S.items.filter(function (it) { return S.opt.set[it.id] && !S.sel[it.id] && !S.hints[it.id]; });
+    if (!cand.length) { toast('Semua barang petunjuk sudah dimuat. Coba turunkan barang yang kurang efisien.'); return; }
+    var pick = cand[Math.floor(Math.random() * cand.length)];
+    S.hints[pick.id] = true; S.hintsUsed++; refresh();
+    els[pick.id].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    toast(pick.name + ' ada di solusi optimal.');
+  });
+  $('#selSort').addEventListener('change', function (e) { S.sort = e.target.value; buildItems(); refresh(); });
+  function sail() { if (S && !S.finished) finishManual('sail'); }
+  $('#btnSail').addEventListener('click', sail);
+  $('#btnSailMini').addEventListener('click', sail);
+  $('#btnGive').addEventListener('click', function () { if (S.finished) return; finishManual('give'); });
+
+  function finishManual(kind) {
+    S.finished = true; clearInterval(timerId);
+    if (S.t0) S.elapsed = Math.floor((Date.now() - S.t0) / 1000);
+    var t = totals(), pct = S.opt.c ? t.c / S.opt.c * 100 : 100;
+    if (kind !== 'give' && !S.saved && selCount()) {
+      S.saved = true;
+      var entry = { name: S.name, lv: S.lv, pct: pct, time: S.elapsed, hints: S.hintsUsed, seed: S.seed, stamp: Date.now() + '-' + Math.floor(Math.random() * 1e6) };
+      var all = loadBoard(); all.push(entry);
+      store(false, 'pinisi.lb', all.slice(-200));
+      newEntry = entry.stamp;
+      var sameLv = all.filter(function (r) { return r && r.lv === S.lv; }).sort(better);
+      S.rankN = sameLv.length;
+      for (var q = 0; q < sameLv.length; q++) if (sameLv[q].stamp === entry.stamp) { S.rank = q + 1; break; }
+      setBoardLv(S.lv);
+    }
+    refresh();
+    if (kind === 'give') { showOptimal(); toast('Kartu bertepi emas adalah solusi optimal.'); }
+    openResult(kind);
+  }
+
+  /* ---------- auto (Greedy by Profit) ---------- */
+  function autoStep() {
+    var A = S.auto; if (S.finished) return false;
+    var it = A.order[A.idx], t = totals(), fits = t.w + it.w <= S.cap, n = A.idx + 1;
+    if (fits) { S.sel[it.id] = true; A.status[it.id] = 'in'; } else A.status[it.id] = 'skip';
+    A.idx++;
+    var t2 = totals();
+    var li = document.createElement('li'); li.className = fits ? 'ok' : 'no';
+    li.innerHTML = '<span class="n">' + n + '</span><span><b>' + (fits ? 'Muat' : 'Lewati') + '</b> ' + esc(it.name) + ' (' + it.w + ' kg, ' + fmtC(it.c) + ')' +
+      '<span class="tt">' + (fits ? '' : 'sisa ' + (S.cap - t.w) + ' kg · ') + 'total ' + t2.w + ' kg · ' + fmtC(t2.c) + '</span></span>';
+    $('#log').insertBefore(li, $('#log').firstChild);
+    $('#clock').textContent = 'Langkah ' + A.idx + '/' + A.order.length;
+    if (A.idx >= A.order.length) { S.finished = true; A.running = false; $('#btnPlay').textContent = 'Selesai'; $('#btnPlay').disabled = true; $('#btnStep').disabled = true; refresh(); setTimeout(function () { openResult('auto'); }, 700); return false; }
+    refresh(); return fits;
+  }
+  function loop() {
+    if (!S.auto.running || S.finished) return;
+    var ms = 90 + (+$('#rngSpeed').value - 1) * 150;
+    var fit = autoStep();
+    autoId = setTimeout(loop, fit ? ms : Math.max(60, ms * .4));
+  }
+  $('#btnPlay').addEventListener('click', function () {
+    if (S.finished) return;
+    S.auto.running = !S.auto.running;
+    $('#btnPlay').textContent = S.auto.running ? 'Jeda' : 'Lanjut';
+    $('#btnStep').disabled = S.auto.running;
+    if (S.auto.running) loop(); else clearTimeout(autoId);
+  });
+  $('#btnStep').addEventListener('click', function () { if (!S.finished && !S.auto.running) { autoStep(); if ($('#btnPlay').textContent === 'Mulai') $('#btnPlay').textContent = 'Lanjut'; } });
+  $('#btnReset').addEventListener('click', function () { startGame({ name: S.name, lv: S.lv, mode: S.mode, seed: S.seed }); });
+
+  $('#btnCopy').addEventListener('click', function () {
+    var done = function () { toast('Kode ' + S.seed + ' disalin.'); };
+    try { navigator.clipboard.writeText(S.seed).then(done, function () { toast('Salin manual: ' + S.seed); }); } catch (e) { toast('Salin manual: ' + S.seed); }
+  });
+  $('#btnMenu').addEventListener('click', toMenu);
+  function toMenu() {
+    stopAll(); closeModal();
+    var lv = S ? S.lv : boardLv;
+    S = null;
+    $('#screenGame').hidden = true; $('#screenStart').hidden = false; $('#who').hidden = true; document.body.classList.remove('ingame');
+    var r = $('input[name="level"][value="' + lv + '"]'); if (r) r.checked = true;
+    setBoardLv(lv); window.scrollTo(0, 0);
+  }
+
+  /* ---------- optimal & result ---------- */
+  function showOptimal() {
+    S.showOpt = true; S.sel = {};
+    Object.keys(S.opt.set).forEach(function (k) { S.sel[k] = true; });
+    refresh();
+  }
+  function trophySvg() {
+    return '<svg class="trophy" viewBox="0 0 120 120" aria-hidden="true"><path d="M32 16h56v26c0 22-12 38-28 38S32 64 32 42z" fill="#f2b23e"/><path d="M32 24H16c0 18 8 30 22 32M88 24h16c0 18-8 30-22 32" fill="none" stroke="#f2b23e" stroke-width="6" stroke-linecap="round"/><rect x="54" y="78" width="12" height="16" fill="#c98a1b"/><rect x="38" y="94" width="44" height="12" rx="2" fill="#f2b23e"/><path d="M60 26l4.5 9.5 10.5 1.4-7.7 7.2 2 10.4L60 49l-9.3 5.5 2-10.4-7.7-7.2 10.5-1.4z" fill="#0d2438"/></svg>';
+  }
+  function rankTitle(p) { return p >= 100 ? 'Saudagar Agung' : p >= 95 ? 'Nakhoda Ulung' : p >= 85 ? 'Juru Mudi' : 'Awak Kapal'; }
+
+  function openResult(kind) {
+    var t = totals(), opt = S.opt, auto = S.mode === 'auto';
+    var gP = greedy(S.items, S.cap, CMP.profit), gR = greedy(S.items, S.cap, CMP.rasio), gB = greedy(S.items, S.cap, CMP.berat);
+    var rows = [];
+    if (!auto) rows.push({ n: 'Pilihanmu', r: kind === 'give' ? { c: 0, w: 0 } : t, me: true, skip: kind === 'give' });
+    rows.push({ n: 'Greedy by Profit', r: gP, me: auto });
+    rows.push({ n: 'Greedy by Profit/kg', r: gR });
+    rows.push({ n: 'Greedy by Berat ringan', r: gB });
+    rows.push({ n: 'Optimal (Dynamic Programming)', r: opt, best: true });
+    var tbl = '<div class="tblwrap"><table class="cmp"><thead><tr><th>Strategi</th><th>Berat</th><th>Profit</th><th>Dari optimal</th></tr></thead><tbody>' +
+      rows.map(function (x) {
+        if (x.skip) return '';
+        var p = opt.c ? x.r.c / opt.c * 100 : 100;
+        return '<tr class="' + (x.me ? 'me ' : '') + (x.best ? 'best' : '') + '"><td>' + x.n + '</td><td class="num">' + x.r.w + ' kg</td><td class="num">' + fmtC(x.r.c) + '</td><td><span class="num">' + p.toFixed(1).replace('.', ',') + '%</span><span class="pc"><i style="width:' + Math.min(100, p) + '%"></i></span></td></tr>';
+      }).join('') + '</tbody></table></div>';
+
+    var gap = opt.c - gP.c, note;
+    if (gap > 0) note = 'Greedy by Profit kehilangan ' + fmtC(gap) + ' (' + (gap / opt.c * 100).toFixed(1).replace('.', ',') + '%) dibanding solusi optimal. Ia selalu mengambil barang paling mahal lebih dulu, sehingga palka terisi oleh barang berat yang kurang efisien. Strategi lokal tidak menjamin hasil global.';
+    else note = 'Pada kode ' + S.seed + ' Greedy by Profit kebetulan menghasilkan solusi optimal. Coba kode atau level lain untuk melihat kasus ketika greedy gagal.';
+
+    var head, lead, pct = opt.c ? t.c / opt.c * 100 : 100;
+    if (auto) { head = 'Pemuatan otomatis selesai'; lead = 'Greedy by Profit memuat ' + selCount() + ' barang: ' + t.w + ' dari ' + S.cap + ' kg, profit ' + fmtC(t.c) + '.'; }
+    else if (kind === 'win') { head = 'Piala Saudagar Rempah untuk ' + esc(S.name); lead = 'Profit ' + fmtC(t.c) + ' sama dengan solusi optimal. Selesai dalam ' + fmtT(S.elapsed) + ' dengan ' + S.hintsUsed + ' petunjuk.'; }
+    else if (kind === 'sail') { head = 'Kapal berlayar sebagai ' + rankTitle(pct); lead = 'Kamu membawa ' + fmtC(t.c) + ' (' + pct.toFixed(1).replace('.', ',') + '% dari optimal) dalam ' + fmtT(S.elapsed) + '. Selisih ' + fmtC(opt.c - t.c) + ' dari solusi terbaik.'; }
+    else { head = 'Solusi optimal'; lead = 'Kapal sekarang memuat kombinasi terbaik: ' + opt.w + ' kg dengan profit ' + fmtC(opt.c) + '. Barang bertepi emas adalah isi solusi itu.'; }
+
+    var beat = '';
+    if (!auto && kind !== 'give') beat = t.c > gP.c ? 'Kamu mengalahkan Greedy by Profit. ' : t.c === gP.c ? 'Hasilmu sama dengan Greedy by Profit. ' : 'Greedy by Profit masih lebih untung dari pilihanmu. ';
+
+    var rankHtml = '';
+    if (!auto && S.rank) rankHtml = '<p class="rankline">Skormu tercatat di papan peringkat: <b>peringkat ' + S.rank + ' dari ' + S.rankN + '</b> pelayaran level ' + LV[S.lv].label + '. Buka Menu utama untuk melihat daftarnya.</p>';
+    else if (!auto && kind === 'give') rankHtml = '<p class="rankline">Menyerah tidak dicatat di papan peringkat.</p>';
+    else if (!auto && !S.rank) rankHtml = '<p class="rankline">Muat setidaknya satu barang agar skormu tercatat.</p>';
+
+    var root = $('#modalRoot');
+    root.innerHTML = '<div class="scrim" id="scrim"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">' +
+      (kind === 'win' ? trophySvg() : '') +
+      '<div class="eyebrow">' + LV[S.lv].label + ' · kode ' + esc(S.seed) + '</div>' +
+      '<h2 id="mTitle">' + head + '</h2><p class="lead">' + lead + '</p>' + rankHtml + tbl +
+      '<p class="note">' + beat + note + '</p>' +
+      '<div class="row-actions">' +
+      (!S.showOpt ? '<button class="btn" id="mShow" type="button">Tampilkan solusi optimal di kapal</button>' : '') +
+      '<button class="btn primary" id="mAgain" type="button">Main lagi, barang baru</button>' +
+      '<button class="btn ghost" id="mSame" type="button">Ulangi kode ini</button>' +
+      '<button class="btn ghost" id="mMenu" type="button">Menu utama</button></div></div></div>';
+    var modal = root.querySelector('.modal');
+    if (kind === 'win' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      for (var i = 0; i < 26; i++) { var c = document.createElement('span'); c.className = 'coin'; c.style.left = (Math.random() * 100) + '%'; c.style.animationDelay = (Math.random() * 1.2) + 's'; modal.appendChild(c); }
+    }
+    var again = $('#mAgain'); again.focus();
+    again.addEventListener('click', function () { var o = { name: S.name, lv: S.lv, mode: S.mode, seed: newSeed() }; closeModal(); startGame(o); });
+    $('#mSame').addEventListener('click', function () { var o = { name: S.name, lv: S.lv, mode: S.mode, seed: S.seed }; closeModal(); startGame(o); });
+    $('#mMenu').addEventListener('click', toMenu);
+    var sh = $('#mShow'); if (sh) sh.addEventListener('click', function () { showOptimal(); closeModal(); toast('Barang bertepi emas adalah solusi optimal.'); });
+    $('#scrim').addEventListener('click', function (e) { if (e.target.id === 'scrim') closeModal(); });
+  }
+  function closeModal() { $('#modalRoot').innerHTML = ''; }
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });
+
+  renderBoard();
+})();
+</script>
+</body>
+</html>
